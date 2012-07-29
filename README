@@ -1,0 +1,17 @@
+functreeをlinuxで使用するためのpatchです。
+【ビルド確認環境】
+ Ubuntu11.10 desktop ja
+ 
+【ビルド手順】
+１．src配下にrun_patch.sh,patch.txtを移動させる。
+２．[./run_patch.sh] を実行。
+３．[make -f cygwin.mak] を実行。
+４．[./functree functree.c] でツリーが標準出力されたら、成功。
+５．パスを通す。
+
+nkf がインストールされていないなら。。。
+sudo apt-get install nkf
+
+patch がインストールされていないなら。。。
+sudo apt-get install patch
+

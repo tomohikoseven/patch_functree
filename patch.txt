@@ -1,0 +1,271 @@
+src_git のみに存在: .git
+diff -u src_utf8/cygwin.mak src_git/cygwin.mak
+--- src_utf8/cygwin.mak	2003-03-27 00:14:31.000000000 +0900
++++ src_git/cygwin.mak	2012-07-29 10:08:41.971703261 +0900
+@@ -21,7 +21,8 @@
+ TARFILE = $(PROJ).tar.gz
+ 
+ .PHONY: all
+-all: cygwin.mak $(PROJ) makefile.dep
++#all: cygwin.mak $(PROJ) makefile.dep
++all: cygwin.mak $(PROJ)
+ 
+ $(PROJ) : $(OBJS)
+ 
+共通のサブディレクトリー: src_utf8/debug と src_git/debug
+diff -u src_utf8/func.c src_git/func.c
+--- src_utf8/func.c	2003-12-15 14:03:20.000000000 +0900
++++ src_git/func.c	2012-07-22 22:32:11.814773215 +0900
+@@ -5,6 +5,9 @@
+ #include	<stdlib.h>
+ #include	"functree.h"
+ 
++#ifndef max
++#define max( a, b ) ( ( ( a ) > ( b ) ) ? ( a ) : ( b ) )
++#endif
+ /* 関数情報
+ typedef struct tagFUNC {
+ 	struct tagFUNC  *next;          //	次の構造体
+@@ -29,7 +32,7 @@
+ void	FuncList_add( FUNC **s, FUNC *toadd );
+ int     FuncList_detach( FUNC **s, FUNC *todetach );
+ void	FuncList_destroy( FUNC *s );
+-FUNC*   FuncList_find( FUNC* this, const char *funcname );
++FUNC*   FuncList_find( FUNC* this, char *funcname );
+ int		FuncList_search( FUNC* this, char *funcname, char *filename,
+ 						FUNC** find );
+ void	FuncList_setflag( FUNC* this );
+@@ -239,7 +242,7 @@
+ //	I	char*	funcname;	関数名
+ //	O	FUNC*	戻り値		見つけた関数情報のポインタ or NULL
+ //-----------------------------------------------------------------------
+-FUNC*   FuncList_find( FUNC* this, const char *funcname )
++FUNC*   FuncList_find( FUNC* this, char *funcname )
+ {
+ 
+ 	while( this != NULL ) {
+src_utf8 のみに存在: funcmsc7.tbl
+src_git のみに存在: functree
+diff -u src_utf8/functree.c src_git/functree.c
+--- src_utf8/functree.c	2009-07-19 12:02:35.000000000 +0900
++++ src_git/functree.c	2012-07-22 21:42:29.544267324 +0900
+@@ -47,7 +47,7 @@
+ #include	<stdio.h>
+ #include	<string.h>
+ #include    <stdlib.h>
+-//#include    <ctype.h>
++#include    <ctype.h>
+ #ifdef WIN32
+ #include <windows.h>
+ #endif
+diff -u src_utf8/functree.cfg src_git/functree.cfg
+--- src_utf8/functree.cfg	1999-11-25 09:14:16.000000000 +0900
++++ src_git/functree.cfg	2012-07-29 10:07:47.428392793 +0900
+@@ -11,7 +11,7 @@
+ ;***************************************************************
+ ;   デフォルトのコンパイラの標準関数（複数指定が可能）
+ ;
+-systemfunc    = "funcMSC7.tbl"          ;   Microsoft-C ver 7.0 用
++;systemfunc    = "funcMSC7.tbl"          ;   Microsoft-C ver 7.0 用
+ ;systemfunc    = "func_WIN.tbl"          ;   WindowsAPI(除：標準関数)
+ ;***************************************************************
+ ;   ツリー本体の書式
+diff -u src_utf8/functree.h src_git/functree.h
+--- src_utf8/functree.h	2002-02-06 10:53:34.000000000 +0900
++++ src_git/functree.h	2012-07-22 22:29:36.200731400 +0900
+@@ -97,7 +97,7 @@
+ void	FuncList_add( FUNC **s, FUNC *toadd );
+ int     FuncList_detach( FUNC **s, FUNC *todetach );
+ void	FuncList_destroy( FUNC *s );
+-FUNC*   FuncList_find( FUNC* this, const char *funcname );
++FUNC*   FuncList_find( FUNC* this, char *funcname );
+ int		FuncList_search( FUNC* this, char *funcname, char *filename,
+ 							FUNC** find );
+ void	FuncList_setCalledFlag( FUNC* this );
+src_git のみに存在: makefile
+diff -u src_utf8/strlist.h src_git/strlist.h
+--- src_utf8/strlist.h	2001-09-14 10:05:10.000000000 +0900
++++ src_git/strlist.h	2012-07-22 21:41:40.420881793 +0900
+@@ -16,4 +16,3 @@
+ 
+ #define __STRLIST_H
+ #endif	//	__STRLIST_H
+-
+\ ファイル末尾に改行がありません
+diff -u src_utf8/tre_cnfg.c src_git/tre_cnfg.c
+--- src_utf8/tre_cnfg.c	1999-11-25 09:05:36.000000000 +0900
++++ src_git/tre_cnfg.c	2012-07-22 22:38:08.798288554 +0900
+@@ -101,16 +101,17 @@
+ 		NULL
+ 	};
+ 	char	fname[80];
+-	unsigned char	str[256],fmt[256];
++	char	str[256],fmt[256];
+ 	char	*p;
+ 	FILE	*fp;
+ 	int		i,ok;
++    char    *ret_fgets = NULL;
+ 
+ 	sprintf( fname,"%sfunctree.cfg",HomePath );
+ 	fp = fopen( fname,"rt" );
+ 	if( fp == NULL ) return 0;
+-	while( !feof(fp) ) {
+-		fgets(str,255,fp);
++	while( !feof(fp) || ret_fgets ) {
++		ret_fgets = fgets(str,255,fp);
+ 
+ 		//	コメントの処理
+ 		p = strchr( str,';' );
+diff -u src_utf8/tre_disp.c src_git/tre_disp.c
+--- src_utf8/tre_disp.c	2002-02-07 06:40:46.000000000 +0900
++++ src_git/tre_disp.c	2012-07-22 21:57:51.556677081 +0900
+@@ -34,15 +34,16 @@
+ 	//	ネストを付ける
+ 	for ( i=0; i<nest-1; i++ ) {
+ 		if ( twig_continue[i] )
+-			fprintf( fp,fmt_twig1 ) ;	// "    | "
++			fprintf( fp, "%s", fmt_twig1 ) ;	// "    | "
+ 		else
+-			fprintf( fp,fmt_twig2 ) ;	// "      "
++			fprintf( fp, "%s", fmt_twig2 ) ;	// "      "
+ 	}
+-	if ( nest != 0 )
++	if ( nest != 0 ) {
+ 		if ( twig_continue[nest-1] )
+-			fprintf( fp,fmt_twig3 ) ;	// "    |-"
++			fprintf( fp, "%s", fmt_twig3 ) ;	// "    |-"
+ 		else
+-			fprintf( fp,fmt_twig4 ) ;	// "    +-"
++			fprintf( fp, "%s" ,fmt_twig4 ) ;	// "    +-"
++    }
+ }
+ 
+ 
+@@ -68,7 +69,7 @@
+ 	//	再帰しているか？
+ 	for ( i=0; i<nest; i++ ) {
+ 		if ( call_stack[i] == f ) {
+-			fprintf( fp,fmt_recursion ) ;	// サイキ印
++			fprintf( fp, "%s", fmt_recursion ) ;	// サイキ印
+ 			recurs_flag = 1;
+ 			break;
+ 		}
+@@ -76,7 +77,7 @@
+ 
+ 	//	すでに展開していると、展開しない
+ 	if( !recurs_flag && f->expanded && P_option ){
+-		fprintf( fp,fmt_expanded );		// " ..."
++		fprintf( fp, "%s", fmt_expanded );		// " ..."
+ 		expand_flag = 1;
+ 	}
+ 	else
+@@ -120,7 +121,7 @@
+ 					disp_twigs( fmt_multibelong, -1, nest+1, fp );
+ 				fprintf( fp, fmt_nest, nest+1 );
+ 				fprintf( fp, fmt_function, s->name );
+-				fprintf( fp, fmt_multi );
++				fprintf( fp, "%s", fmt_multi );
+ 				fprintf( fp, "\n" ) ;
+ 				break;
+ 		}
+@@ -218,7 +219,7 @@
+ 	//	再帰しているか？
+ 	for ( i=0; i<nest; i++ ) {
+ 		if ( call_stack[i] == f ) {
+-			fprintf( fp,fmt_recursion ) ;	// サイキ印
++			fprintf( fp, "%s", fmt_recursion ) ;	// サイキ印
+ 			recurs_flag = 1;
+ 			break;
+ 		}
+@@ -226,7 +227,7 @@
+ 
+ 	//	すでに展開していると、展開しない
+ 	if( !recurs_flag && f->expanded && P_option ){
+-		fprintf( fp,fmt_expanded );		// " ..."
++		fprintf( fp, "%s", fmt_expanded );		// " ..."
+ 		expand_flag = 1;
+ 	}
+ 	else
+diff -u src_utf8/tre_find.c src_git/tre_find.c
+--- src_utf8/tre_find.c	2009-07-19 12:01:40.000000000 +0900
++++ src_git/tre_find.c	2012-07-22 22:39:41.273124560 +0900
+@@ -247,7 +247,8 @@
+ 				// もし、コメント内にキーワードが見つかれば、commentに格納
+ //-2003.05.28 fyJ:				*(strp-1) = '\0';
+ 				*strp = '\0';	//+2003.05.28 fyJ: 最後の１文字が削れるのを修正.
+-				if( p2 = strstr(str, fmt_comment )) {
++				p2 = strstr(str, fmt_comment );
++				if( NULL != p2 ) {
+ 					strcpy(Parser.comment, p2+strlen(fmt_comment));
+ 					strtrim(Parser.comment);	//	前後のスペースを取る
+ 				}
+@@ -282,7 +283,8 @@
+ 		} while( a != '\n' );					//add mk
+ 		*--strp = '\0';							//add mk 最後の"\n"をカット
+ 		// もし、コメント内にキーワードが見つかれば、commentに格納
+-		if( p2 = strstr(str,fmt_comment )) {	//add mk キーワード有り
++		p2 = strstr(str,fmt_comment );	//add mk キーワード有り
++		if( NULL != p2 ) {	//add mk キーワード有り
+ 			strcpy(Parser.comment, p2+strlen(fmt_comment));
+ 			strtrim(Parser.comment);
+ 		}										//add mk
+@@ -311,7 +313,7 @@
+ 	Parser_skipBrank();
+ 	rc = Parser_getIdentify(name);	//	"(" or "defined"
+ 
+-	if(rc == TOKEN_IDENTIFY && stricmp(name,"defined")==0) {
++	if(rc == TOKEN_IDENTIFY && strcmp(name,"defined")==0) {
+ 		Parser_getIdentify(name);	//	(
+ 		Parser_getIdentify(name);	//	DEFINE
+ 		rc = StrList_isExist( Defines, name );
+@@ -335,10 +337,10 @@
+ 	Parser_skipBrank();
+ 	rc = Parser_getIdentify(name);  //      "(" or "defined"
+ 
+-	if(rc == TOKEN_IDENTIFY && stricmp(name,"defined")==0) {
++	if(rc == TOKEN_IDENTIFY && strcmp(name,"defined")==0) {
+ 		rc = 1 ;
+ 		do {
+-			if(stricmp(name,"defined")==0) {
++			if(strcmp(name,"defined")==0) {
+ 				Parser_getIdentify(name);  //      "("
+ 				Parser_getIdentify(name);  //      "defined"
+ 				rc *= StrList_isExist( Defines, name );
+@@ -373,7 +375,7 @@
+ 
+ //-----------------------------------------------------------------------
+ //	機能:#から始まるディレクトリのうち、無効な部分を読み飛ばす。
+-// #include \
++// #include 
+ // <stdio.h>
+ // ↑こんなのには対応していない。#defineは対応できた。
+ // プリプロは行単位に解析を行っているので、字句解析器も行単位に対応すべき。
+@@ -382,11 +384,12 @@
+ {
+ 	char command[256];
+ 	char name[256];
+-	int type, i, eval, ch;
++	int i, eval, ch;
+ 
+ 	do {
+ 		//	プリプロセッサへのコマンドを取得
+-		type = Parser_getIdentify(command);
++		//type = Parser_getIdentify(command);
++		Parser_getIdentify(command);
+ 		//	それぞれのコマンドに対して
+ 		if( strcmp( command,"if" ) == 0 ) {
+ 			Parser.pri_stat[Parser.pri_nest++] = Parser_evalExpression();
+@@ -614,11 +617,10 @@
+ //-----------------------------------------------------------------------
+ void	Parser_findFunctionDefinition(const char* filename )
+ {
+-	int     		len = 0 ;
+ 	int				ch = 0;
+ 	int             def_line ;	// 関数が定義された先頭の行数
+-	unsigned char	buf[1000] ;
+-	unsigned char	funcname[256];	// 関数名
++	char	buf[1000] ;
++	char	funcname[256];	// 関数名
+ 	FUNC			*func = NULL;
+ 	int rc;
+ 
